@@ -1,32 +1,718 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Website Sederhana</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      background: linear-gradient(to right, #4facfe, #00f2fe);
-      color: white;
-      text-align: center;
-      padding-top: 100px;
-    }
-    h1 {
-      font-size: 3em;
-    }
-    p {
-      font-size: 1.2em;
-    }
-    a {
-      color: yellow;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Survival Game Versi 1.0.0</title>
+<style>
+  body {
+    margin: 0; overflow: hidden; background: #222;
+    font-family: Arial, sans-serif;
+    user-select: none;
+  }
+  #gameCanvas {
+    background: #34495e;
+    display: block;
+    margin: 0 auto;
+    border: 3px solid #222;
+    border-radius: 8px;
+  }
+  #msg {
+    position: fixed;
+    top: 20px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.7);
+    color: white; padding: 10px 20px;
+    border-radius: 6px;
+    display: none;
+    font-weight: bold;
+    z-index: 1000;
+  }
+  #pauseBtn, #settingsBtn {
+    position: fixed;
+    top: 20px;
+    background: #2980b9;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    font-size: 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.3s ease;
+  }
+  #pauseBtn:hover, #settingsBtn:hover {
+    background: #3498db;
+  }
+  #pauseBtn {
+    left: 20px;
+  }
+  #settingsBtn {
+    left: 120px;
+  }
+  #versionLabel {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    color: #bbb;
+    font-size: 14px;
+    font-weight: bold;
+    user-select: none;
+    text-shadow: 0 0 5px #222;
+  }
+
+  /* Joystick */
+  #joystickContainer {
+    position: fixed;
+    bottom: 80px;
+    left: 20px;
+    width: 100px;
+    height: 100px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 50%;
+    touch-action: none;
+    user-select: none;
+    z-index: 999;
+  }
+  #joystickThumb {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 50px; height: 50px;
+    margin-left: -25px; margin-top: -25px;
+    background: #27ae60cc;
+    border-radius: 50%;
+    transition: left 0.1s, top 0.1s;
+    user-select: none;
+  }
+
+  /* Settings Menu */
+  #settingsMenu {
+    display: none;
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: #222;
+    color: white;
+    padding: 20px 30px;
+    border-radius: 10px;
+    z-index: 1001;
+    width: 320px;
+    box-shadow: 0 0 15px #000;
+  }
+  #settingsMenu h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    text-align: center;
+  }
+  #settingsMenu label {
+    display: block;
+    margin-top: 12px;
+  }
+  #settingsMenu select, #settingsMenu input[type=range] {
+    width: 100%;
+    margin-top: 5px;
+  }
+  #settingsClose {
+    margin-top: 20px;
+    display: block;
+    width: 100%;
+    padding: 8px 0;
+    background: #c0392b;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+  }
+  #settingsClose:hover {
+    background: #e74c3c;
+  }
+
+  /* Character Select */
+  #charSelect {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #222;
+    color: white;
+    padding: 25px 30px;
+    border-radius: 8px;
+    text-align: center;
+    z-index: 2000;
+    width: 360px;
+    box-shadow: 0 0 20px #000;
+  }
+  #charSelect h3 {
+    margin: 0 0 15px 0;
+  }
+  #charSelect button {
+    background: #2980b9;
+    border: none;
+    color: white;
+    font-weight: bold;
+    padding: 12px 18px;
+    margin: 10px 5px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    user-select: none;
+  }
+  #charSelect button:hover {
+    background: #3498db;
+  }
+</style>
 </head>
 <body>
-  <h1>Halo Dunia!</h1>
-  <p>Ini adalah website pertamaku menggunakan <strong>Vercel</strong> 🚀</p>
-  <p>Kode ini bisa kamu edit sesukamu!</p>
-  <a href="https://vercel.com" target="_blank">Pelajari Vercel</a>
+<canvas id="gameCanvas" width="900" height="600"></canvas>
+<div id="msg"></div>
+<button id="pauseBtn">Pause</button>
+<button id="settingsBtn">Settings</button>
+<div id="joystickContainer">
+  <div id="joystickThumb"></div>
+</div>
+
+<div id="settingsMenu">
+  <h2>Settings</h2>
+  <label for="sensitivityRange">Joystick Sensitivity</label>
+  <input type="range" id="sensitivityRange" min="0.2" max="3" step="0.1" value="1" />
+  
+  <label for="languageSelect">Language</label>
+  <select id="languageSelect">
+    <option value="en">English</option>
+    <option value="id">Bahasa Indonesia</option>
+  </select>
+
+  <label>
+    <input type="checkbox" id="musicToggle" checked />
+    Enable Music
+  </label>
+
+  <h3>Controls</h3>
+  <p>Move Up: <span id="moveUpKey">W</span></p>
+  <p>Move Left: <span id="moveLeftKey">A</span></p>
+  <p>Move Down: <span id="moveDownKey">S</span></p>
+  <p>Move Right: <span id="moveRightKey">D</span></p>
+
+  <button id="settingsClose">Close</button>
+</div>
+
+<div id="versionLabel">Versi 1.0.0</div>
+
+<!-- Character Selection -->
+<div id="charSelect" style="display:none;">
+  <h3>Select Your Character</h3>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+
+  const MSG = document.getElementById('msg');
+  const PAUSE_BTN = document.getElementById('pauseBtn');
+  const SETTINGS_BTN = document.getElementById('settingsBtn');
+  const SETTINGS_MENU = document.getElementById('settingsMenu');
+  const SETTINGS_CLOSE = document.getElementById('settingsClose');
+  const SENSITIVITY_RANGE = document.getElementById('sensitivityRange');
+  const LANGUAGE_SELECT = document.getElementById('languageSelect');
+  const MUSIC_TOGGLE = document.getElementById('musicToggle');
+
+  const MOVE_UP_KEY_SPAN = document.getElementById('moveUpKey');
+  const MOVE_LEFT_KEY_SPAN = document.getElementById('moveLeftKey');
+  const MOVE_DOWN_KEY_SPAN = document.getElementById('moveDownKey');
+  const MOVE_RIGHT_KEY_SPAN = document.getElementById('moveRightKey');
+
+  const JOYSTICK_CONTAINER = document.getElementById('joystickContainer');
+  const JOYSTICK_THUMB = document.getElementById('joystickThumb');
+  const CHAR_SELECT = document.getElementById('charSelect');
+
+  const MAP_WIDTH = 100;
+  const MAP_HEIGHT = 100;
+  const TILE_SIZE = 64;
+
+  // Map generation: 10% houses
+  const map = [];
+  for(let y=0; y<MAP_HEIGHT; y++) {
+    map[y] = [];
+    for(let x=0; x<MAP_WIDTH; x++) {
+      map[y][x] = Math.random() < 0.1 ? 1 : 0;
+    }
+  }
+
+  // Characters data
+  const characters = [
+    {name: "Ranger", speed: 3.5, size: 14, color: '#2ecc71'},
+    {name: "Tank", speed: 2, size: 22, color: '#e74c3c'},
+    {name: "Scout", speed: 4.2, size: 12, color: '#3498db'},
+  ];
+
+  let selectedCharacterIndex = 0;
+
+  let player = {
+    x: 3200,
+    y: 3200,
+    size: 14,
+    speed: 3.5,
+    color: '#2ecc71',
+    coins: 0,
+  };
+
+  // Houses looted tracking
+  const houseLooted = {};
+
+  // Camera position
+  const camera = {x: 0, y: 0};
+
+  // Key states
+  let keys = {};
+  let paused = true;
+
+  // Controls default keys
+  let controls = {
+    up: 'w',
+    down: 's',
+    left: 'a',
+    right: 'd',
+  };
+
+  // Joystick states
+  let joystickActive = false;
+  let joystickPos = {x: 0, y: 0};
+  let joystickSensitivity = 1;
+
+  // Language strings
+  const LANG = {
+    en: {
+      coins: 'Coins',
+      mission: 'Mission: Find and loot houses! (Press E)',
+      paused: 'Paused',
+      lootMessage: 'You looted a house! +1 coin',
+      pause: 'Pause',
+      resume: 'Resume',
+      settings: 'Settings',
+      enableMusic: 'Enable Music',
+      controls: 'Controls',
+      moveUp: 'Move Up',
+      moveLeft: 'Move Left',
+      moveDown: 'Move Down',
+      moveRight: 'Move Right',
+      language: 'Language',
+      sensitivity: 'Joystick Sensitivity',
+      close: 'Close',
+      noHouse: 'No house here!',
+      alreadyLooted: 'Already looted',
+    },
+    id: {
+      coins: 'Koin',
+      mission: 'Misi: Cari dan looting rumah! (Tekan E)',
+      paused: 'Jeda',
+      lootMessage: 'Kamu telah loot rumah! +1 koin',
+      pause: 'Jeda',
+      resume: 'Lanjutkan',
+      settings: 'Pengaturan',
+      enableMusic: 'Aktifkan Musik',
+      controls: 'Kontrol',
+      moveUp: 'Gerak Atas',
+      moveLeft: 'Gerak Kiri',
+      moveDown: 'Gerak Bawah',
+      moveRight: 'Gerak Kanan',
+      language: 'Bahasa',
+      sensitivity: 'Sensitivitas Joystick',
+      close: 'Tutup',
+      noHouse: 'Tidak ada rumah di sini!',
+      alreadyLooted: 'Sudah di-loot',
+    }
+  };
+
+  let currentLang = 'en';
+
+  // Audio
+  let audioCtx;
+  let clickSoundBuffer;
+  let bgMusic;
+  let musicEnabled = true;
+
+  // Init Audio
+  function initAudio() {
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      // Create simple click sound
+      clickSoundBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.05, audioCtx.sampleRate);
+      let channelData = clickSoundBuffer.getChannelData(0);
+      for(let i=0; i<channelData.length; i++) {
+        channelData[i] = Math.sin(i / audioCtx.sampleRate * 1000 * 2 * Math.PI) * 0.2 * (1 - i/channelData.length);
+      }
+      // Background music - simple looped tone for demo
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start();
+      bgMusic = {osc, gain};
+      if (!musicEnabled) {
+        gain.gain.setValueAtTime(0, audioCtx.currentTime);
+      }
+    } catch(e) {
+      // Audio not supported
+      audioCtx = null;
+    }
+  }
+  function playClick() {
+    if(!audioCtx) return;
+    const source = audioCtx.createBufferSource();
+    source.buffer = clickSoundBuffer;
+    source.connect(audioCtx.destination);
+    source.start();
+  }
+  function toggleMusic(on) {
+    musicEnabled = on;
+    if(bgMusic && bgMusic.gain) {
+      bgMusic.gain.gain.setValueAtTime(musicEnabled ? 0.02 : 0, audioCtx.currentTime);
+    }
+  }
+
+  // Save & Load Data
+  function saveGame() {
+    const data = {
+      playerX: player.x,
+      playerY: player.y,
+      coins: player.coins,
+      selectedCharacterIndex,
+      houseLooted,
+      controls,
+      currentLang,
+      joystickSensitivity,
+      musicEnabled,
+    };
+    localStorage.setItem('survivalGameSave', JSON.stringify(data));
+  }
+  function loadGame() {
+    const data = localStorage.getItem('survivalGameSave');
+    if(data) {
+      try {
+        const d = JSON.parse(data);
+        player.x = d.playerX ?? player.x;
+        player.y = d.playerY ?? player.y;
+        player.coins = d.coins ?? 0;
+        selectedCharacterIndex = d.selectedCharacterIndex ?? 0;
+        Object.assign(houseLooted, d.houseLooted ?? {});
+        Object.assign(controls, d.controls ?? controls);
+        currentLang = d.currentLang ?? 'en';
+        joystickSensitivity = d.joystickSensitivity ?? 1;
+        musicEnabled = d.musicEnabled ?? true;
+        updatePlayerCharacter();
+        updateControlsUI();
+        LANGUAGE_SELECT.value = currentLang;
+        SENSITIVITY_RANGE.value = joystickSensitivity;
+        MUSIC_TOGGLE.checked = musicEnabled;
+        toggleMusic(musicEnabled);
+      } catch(e) {
+        console.warn('Failed to load save data');
+      }
+    }
+  }
+
+  // Show temporary message
+  let msgTimeout = null;
+  function showMessage(text, duration=2000) {
+    clearTimeout(msgTimeout);
+    MSG.textContent = text;
+    MSG.style.display = 'block';
+    msgTimeout = setTimeout(() => { MSG.style.display = 'none'; }, duration);
+  }
+
+  // Update player based on selected character
+  function updatePlayerCharacter() {
+    const c = characters[selectedCharacterIndex];
+    player.speed = c.speed;
+    player.size = c.size;
+    player.color = c.color;
+  }
+
+  // Draw player with gradient and name
+  function drawPlayer() {
+    const px = player.x - camera.x;
+    const py = player.y - camera.y;
+
+    const grad = ctx.createRadialGradient(px, py, 0, px, py, player.size);
+    grad.addColorStop(0, player.color);
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+
+    ctx.beginPath();
+    ctx.arc(px, py, player.size, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle = player.color;
+    ctx.beginPath();
+    ctx.arc(px, py, player.size * 0.6, 0, Math.PI*2);
+    ctx.fill();
+
+    // Name label above player
+    ctx.fillStyle = 'white';
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(characters[selectedCharacterIndex].name, px, py - player.size - 12);
+  }
+
+  // Draw map visible tiles + houses
+  function drawMap() {
+    const startX = Math.floor(camera.x / TILE_SIZE);
+    const startY = Math.floor(camera.y / TILE_SIZE);
+    const endX = startX + Math.ceil(canvas.width / TILE_SIZE) + 1;
+    const endY = startY + Math.ceil(canvas.height / TILE_SIZE) + 1;
+
+    for(let y = startY; y < endY; y++) {
+      for(let x = startX; x < endX; x++) {
+        const tileX = x * TILE_SIZE - camera.x;
+        const tileY = y * TILE_SIZE - camera.y;
+
+        // Draw ground
+        ctx.fillStyle = '#7f8c8d';
+        ctx.fillRect(tileX, tileY, TILE_SIZE, TILE_SIZE);
+
+        // Draw grid lines for clarity
+        ctx.strokeStyle = '#95a5a6';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(tileX, tileY, TILE_SIZE, TILE_SIZE);
+
+        // Draw houses if tile==1
+        if(y >= 0 && y < MAP_HEIGHT && x >= 0 && x < MAP_WIDTH) {
+          if(map[y][x] === 1) {
+            // Draw house
+            ctx.fillStyle = houseLooted[`${x},${y}`] ? '#95a5a6' : '#d35400'; // dim if looted
+            ctx.fillRect(tileX + 8, tileY + 8, TILE_SIZE - 16, TILE_SIZE - 16);
+            ctx.strokeStyle = '#e67e22';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(tileX + 8, tileY + 8, TILE_SIZE - 16, TILE_SIZE - 16);
+          }
+        }
+      }
+    }
+  }
+
+  // Update camera to center on player
+  function updateCamera() {
+    camera.x = player.x - canvas.width / 2;
+    camera.y = player.y - canvas.height / 2;
+
+    // Clamp camera inside map boundaries
+    camera.x = Math.max(0, Math.min(camera.x, MAP_WIDTH * TILE_SIZE - canvas.width));
+    camera.y = Math.max(0, Math.min(camera.y, MAP_HEIGHT * TILE_SIZE - canvas.height));
+  }
+
+  // Player move by keyboard or joystick
+  function movePlayer(dx, dy) {
+    if(paused) return;
+    const speed = player.speed;
+
+    // Normalize if diagonal
+    if(dx !== 0 && dy !== 0) {
+      dx *= Math.SQRT1_2;
+      dy *= Math.SQRT1_2;
+    }
+    let newX = player.x + dx * speed;
+    let newY = player.y + dy * speed;
+
+    // Keep inside map
+    newX = Math.max(player.size, Math.min(newX, MAP_WIDTH * TILE_SIZE - player.size));
+    newY = Math.max(player.size, Math.min(newY, MAP_HEIGHT * TILE_SIZE - player.size));
+
+    player.x = newX;
+    player.y = newY;
+  }
+
+  // Check if player is on house tile
+  function checkLoot() {
+    const tileX = Math.floor(player.x / TILE_SIZE);
+    const tileY = Math.floor(player.y / TILE_SIZE);
+    if(tileX < 0 || tileX >= MAP_WIDTH || tileY < 0 || tileY >= MAP_HEIGHT) return;
+
+    if(map[tileY][tileX] === 1) {
+      if(!houseLooted[`${tileX},${tileY}`]) {
+        houseLooted[`${tileX},${tileY}`] = true;
+        player.coins++;
+        showMessage(LANG[currentLang].lootMessage);
+        playClick();
+      } else {
+        showMessage(LANG[currentLang].alreadyLooted);
+      }
+    } else {
+      showMessage(LANG[currentLang].noHouse);
+    }
+  }
+
+  // Draw UI: coins and mission
+  function drawUI() {
+    ctx.fillStyle = 'white';
+    ctx.font = '20px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText(`${LANG[currentLang].coins}: ${player.coins}`, 15, 30);
+
+    ctx.font = '16px Arial';
+    ctx.fillText(LANG[currentLang].mission, 15, 60);
+
+    if(paused) {
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'white';
+      ctx.font = '48px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(LANG[currentLang].paused, canvas.width / 2, canvas.height / 2);
+    }
+  }
+
+  // Game loop
+  function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawMap();
+    drawPlayer();
+    drawUI();
+
+    updateCamera();
+
+    if(!paused) {
+      // Move player keyboard input
+      let dx = 0, dy = 0;
+      if(keys[controls.up]) dy -= 1;
+      if(keys[controls.down]) dy += 1;
+      if(keys[controls.left]) dx -= 1;
+      if(keys[controls.right]) dx += 1;
+
+      // Add joystick input
+      dx += joystickPos.x * joystickSensitivity;
+      dy += joystickPos.y * joystickSensitivity;
+
+      movePlayer(dx, dy);
+    }
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  // Save on page unload
+  window.addEventListener('beforeunload', () => {
+    saveGame();
+  });
+
+  // Keyboard input
+  window.addEventListener('keydown', e => {
+    const key = e.key.toLowerCase();
+    keys[key] = true;
+    if(key === 'e' && !paused) {
+      checkLoot();
+    }
+  });
+  window.addEventListener('keyup', e => {
+    const key = e.key.toLowerCase();
+    keys[key] = false;
+  });
+
+  // Pause button
+  PAUSE_BTN.addEventListener('click', () => {
+    paused = !paused;
+    PAUSE_BTN.textContent = paused ? LANG[currentLang].resume : LANG[currentLang].pause;
+  });
+
+  // Settings button
+  SETTINGS_BTN.addEventListener('click', () => {
+    SETTINGS_MENU.style.display = 'block';
+  });
+
+  // Settings close
+  SETTINGS_CLOSE.addEventListener('click', () => {
+    SETTINGS_MENU.style.display = 'none';
+    // Save settings
+    joystickSensitivity = parseFloat(SENSITIVITY_RANGE.value);
+    currentLang = LANGUAGE_SELECT.value;
+    musicEnabled = MUSIC_TOGGLE.checked;
+    toggleMusic(musicEnabled);
+    saveGame();
+    updateTexts();
+  });
+
+  // Update UI texts after language change
+  function updateTexts() {
+    PAUSE_BTN.textContent = paused ? LANG[currentLang].resume : LANG[currentLang].pause;
+    SETTINGS_BTN.textContent = LANG[currentLang].settings;
+  }
+
+  // Update control keys UI
+  function updateControlsUI() {
+    MOVE_UP_KEY_SPAN.textContent = controls.up.toUpperCase();
+    MOVE_LEFT_KEY_SPAN.textContent = controls.left.toUpperCase();
+    MOVE_DOWN_KEY_SPAN.textContent = controls.down.toUpperCase();
+    MOVE_RIGHT_KEY_SPAN.textContent = controls.right.toUpperCase();
+  }
+
+  // Joystick logic
+  let joystickRect = JOYSTICK_CONTAINER.getBoundingClientRect();
+  let centerX = joystickRect.left + joystickRect.width / 2;
+  let centerY = joystickRect.top + joystickRect.height / 2;
+
+  function updateJoystickPosition(x, y) {
+    const maxDistance = joystickRect.width / 2 - JOYSTICK_THUMB.offsetWidth / 2;
+    const dx = x - centerX;
+    const dy = y - centerY;
+    const distance = Math.min(maxDistance, Math.hypot(dx, dy));
+    const angle = Math.atan2(dy, dx);
+
+    const posX = centerX + Math.cos(angle) * distance;
+    const posY = centerY + Math.sin(angle) * distance;
+
+    JOYSTICK_THUMB.style.left = (posX - joystickRect.left - JOYSTICK_THUMB.offsetWidth/2) + 'px';
+    JOYSTICK_THUMB.style.top = (posY - joystickRect.top - JOYSTICK_THUMB.offsetHeight/2) + 'px';
+
+    joystickPos.x = Math.cos(angle) * (distance / maxDistance);
+    joystickPos.y = Math.sin(angle) * (distance / maxDistance);
+  }
+
+  function resetJoystick() {
+    JOYSTICK_THUMB.style.left = '50%';
+    JOYSTICK_THUMB.style.top = '50%';
+    joystickPos.x = 0;
+    joystickPos.y = 0;
+  }
+
+  // Touch and mouse joystick events
+  function onStart(event) {
+    event.preventDefault();
+    joystickActive = true;
+    const touch = event.touches ? event.touches[0] : event;
+    updateJoystickPosition(touch.clientX, touch.clientY);
+  }
+  function onMove(event) {
+    if(!joystickActive) return;
+    event.preventDefault();
+    const touch = event.touches ? event.touches[0] : event;
+    updateJoystickPosition(touch.clientX, touch.clientY);
+  }
+  function onEnd(event) {
+    if(!joystickActive) return;
+    event.preventDefault();
+    joystickActive = false;
+    resetJoystick();
+  }
+
+  JOYSTICK_CONTAINER.addEventListener('touchstart', onStart);
+  JOYSTICK_CONTAINER.addEventListener('touchmove', onMove);
+  JOYSTICK_CONTAINER.addEventListener('touchend', onEnd);
+  JOYSTICK_CONTAINER.addEventListener('mousedown', onStart);
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onEnd);
+
+  // Initialize everything
+  initAudio();
+  loadGame();
+  updateControlsUI();
+  updateTexts();
+  gameLoop();
+
+})();  
+</script>
+
 </body>
 </html>
